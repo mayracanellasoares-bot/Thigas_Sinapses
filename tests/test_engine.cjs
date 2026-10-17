@@ -25,6 +25,15 @@ const cases=[
 ['O que é indução eletromagnética?','indução eletromagnética'],
 ['O que é segurança da informação?','segurança da informação'],
 ['Quando começou a Revolução Francesa?','Revolução Francesa'],
+['Qual é a capital da França?',null],
+['qual a capital da frança',null],
+['Como funciona o laço for em C++?',null],
+['como funciona o laço for em c++?',null],
+['Qual a diferença entre Python e Java?',null],
+['O que é transtorno bipolar?',null],
+['Quem foi Machado de Assis?','Machado de Assis'],
+['Qual a capital brasileira?','capital do Brasil'],
+['Me explique o que é um algoritmo em detalhes','algoritmo'],
 ];
 for(const [q,expected] of cases){
  const result=NLP.query(index,q).match?.memory.subject??null;
