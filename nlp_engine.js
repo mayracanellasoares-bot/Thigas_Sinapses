@@ -15,7 +15,7 @@
   const skip = new Set(('a o os as um uma uns umas de da do dos das e em para por com ao aos na no nos nas ' +
     'que qual quais sao me meu minha meus minhas seu sua seus suas isto isso esse essa este esta ' +
     'voce voces favor gostaria poderia diga informe preciso quero saber explicar explique ' +
-    'sobre pra tambem exemplo me conte mostre').split(' '));
+    'sobre pra tambem exemplo me conte mostre detalhe detalhes').split(' '));
   const concepts = [
     ['criador','inventor','inventou','criou','criada','criado','desenvolvedor','desenvolveu','autor','autoria','fundador','idealizador'],
     ['definicao','defina','significa','significado','conceito','consiste'],
@@ -127,8 +127,12 @@
     const qi = intent(question);
     if (!qtokens.length) return {match:null, alternatives:[],reason:'vazio'};
     const qv = featureVector(question), N = index.docs.length;
-    const structural = new Set(['criador','definicao','funcao','quando','onde','como','quem','qual','quais','quantos','quantas','diferenca','comparacao','significa','ser','foi','fazer','usar','explicar','ano','data','nome']);
+    const structural = new Set(['criador','definicao','funcao','quando','onde','como','quem','qual','quais','quantos','quantas','diferenca','comparacao','detalhe','detalhes','significa','ser','foi','fazer','usar','explicar','ano','data','nome']);
     const contentTerms = qtokens.filter(t => !structural.has(t));
+    // Destaca entidades explícitas sem confundir palavras interrogativas com nomes.
+    const questionStarts = new Set(['quem','qual','quais','como','quando','onde','oque','o','a','os','as','por','me','voce','explique','diga','quero','para','em','no','na','que']);
+    const namedTerms = [...new Set((String(question).match(/[\p{Lu}][\p{L}\p{N}+#.]*/gu) || [])
+      .flatMap(word => questionStarts.has(normal(word)) ? [] : tokens(word)))];
     const results = [];
     for (const d of index.docs) {
       let bm=0, overlap=0, importantOverlap=0, answered=0;
@@ -145,7 +149,13 @@
       // Recusa respostas sobre entidades desconhecidas, como "Java" numa
       // coleção que só conhece o criador de "Python".
       if (contentTerms.length && !contentTerms.some(t => d.st.has(t) || d.tag.has(t))) continue;
-      if (contentTerms.length >= 2 && contentTerms.filter(t => d.st.has(t) || d.tag.has(t)).length / contentTerms.length < .5) continue;
+      // Não responda com uma entidade errada (França ≠ Brasil, C++ ≠ Python).
+      // Perguntas curtas precisam cobrir TODOS os termos do assunto; nas longas,
+      // aceite alguma flexibilidade, mas não nomes próprios incompatíveis.
+      const matchedContent = contentTerms.filter(t => d.st.has(t) || d.tag.has(t)).length;
+      if (contentTerms.length >= 2 && matchedContent / contentTerms.length < .75) continue;
+      if (contentTerms.length >= 2 && contentTerms.length <= 3 && matchedContent !== contentTerms.length) continue;
+      if (namedTerms.some(t => !d.st.has(t) && !d.tag.has(t))) continue;
       const coverage=overlap/qtokens.length;
       const similar=d.labelVectors.reduce((m,v)=>Math.max(m,cosine(qv,v)),0);
       const ms=d.detectedIntent;
