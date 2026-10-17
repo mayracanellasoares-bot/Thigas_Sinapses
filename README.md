@@ -89,3 +89,9 @@ A interface insere fatos com `textContent`, impedindo que HTML nas respostas sej
 O reconhecimento de voz depende das APIs e políticas do navegador; em alguns navegadores ele exige conexão com servidores de reconhecimento e não funciona offline.
 
 **Qualidade da base:** a auditoria validou formato, completude estrutural, duplicações, comandos e recuperação de exemplos. Uma definição duplicada foi diferenciada. **Não foi realizada conferência documental independente das 1.127 afirmações**; para fatos sensíveis ou usados em contexto escolar, confira fontes confiáveis antes da utilização.
+
+## Segunda auditoria — regressões de PLN e consistência (16/10/2026)
+
+A segunda varredura encontrou e corrigiu correspondências inadequadas entre entidades (França/Brasil, C++/Python e Python/Java), o comando de ajuda interceptando perguntas técnicas, duplicações de assuntos em `/aprender` e avaliações repetidas aumentando a confiança da mesma resposta. A abertura de uma conversa também passa a pedir confirmação quando houver memórias temporárias, mesmo sem mensagens no histórico.
+
+Foram adicionados testes de regressão. Verificações realizadas localmente: **28 consultas de PLN**, **27 testes de interface**, testes de migração, verificação de sintaxe JS e integridade dos JSONs. As memórias de fábrica continuam em **1.127** e a rede em **7.010 conexões**. A seleção ficou intencionalmente mais conservadora e pode solicitar reformulações em perguntas ambíguas. Esses números não substituem validação de produção no GitHub Pages nem avaliação bibliográfica das respostas.
