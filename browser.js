@@ -83,7 +83,7 @@
  function respond(q){
   const pure=normal(q).trim();
   if(/^(oi|ola|bom dia|boa tarde|boa noite)[!.\s]*$/.test(pure))return {text:'Olá! Sou o THIGAS Synapse v4, com uma biblioteca multidisciplinar e uma rede de sinapses temáticas. Pergunte sobre programação, exatas, humanas, linguagens, tecnologia ou psicologia.'};
-  if(/como (voce )?funciona|o que voce faz|como usar (o )?synapse/.test(pure))return {text:'Utilizo PLN local leve: normalização, conceitos equivalentes, identificação de intenção, ranqueamento BM25 e vetores de características textuais. Busco entre as memórias cadastradas e recuso respostas sem evidência suficiente. Não sou uma LLM e não uso embeddings neurais. Minhas sinapses indicam proximidade temática, não verdades novas.'};
+  if(/^(?:como (?:voce )?funciona|como funciona (?:o )?(?:thigas )?synapse|o que voce faz|como usar (?:o )?synapse)$/.test(pure))return {text:'Utilizo PLN local leve: normalização, conceitos equivalentes, identificação de intenção, ranqueamento BM25 e vetores de características textuais. Busco entre as memórias cadastradas e recuso respostas sem evidência suficiente. Não sou uma LLM e não uso embeddings neurais. Minhas sinapses indicam proximidade temática, não verdades novas.'};
   const command=q.trim().toLowerCase();
   if(command==='/sinapses')return {text:'A rede contém '+getGraph().total.toLocaleString('pt-BR')+' associações temáticas entre '+state.memories.length.toLocaleString('pt-BR')+' memórias. Use /sinapses assunto para explorar.'};
   if(command.startsWith('/sinapses ')){
@@ -121,6 +121,7 @@
   let mem=editingId?state.memories.find(m=>m.id===editingId):null;
   if(mem && normal(mem.subject)!==normal(subject))state.deletedSubjects=[...new Set([...state.deletedSubjects,normal(mem.subject)])];
   state.deletedSubjects=state.deletedSubjects.filter(s=>normal(s)!==normal(subject));
+  if(state.memories.some(m=>m.id!==mem?.id && normal(m.subject)===normal(subject)))throw Error('Este assunto já existe. Abra “Minhas memórias” para editar a resposta.');
   if(!mem){if(state.memories.length>=MAX_MEMORY)throw Error('Limite de '+MAX_MEMORY+' memórias. Exporte antes de ampliar.');mem={id:id||randomId(),createdAt:new Date().toISOString()};state.memories.push(mem);}
   const numeric=Number(data.confidence);
   Object.assign(mem,{subject,fact,tags,aliases,approved,confidence:clamp(Number.isFinite(numeric)&&numeric>0?numeric:.85,.1,.99),source:data.source||mem.source||(approved?'ensinado':'temporário')});
@@ -128,7 +129,7 @@
   invalidateIndex();if(!deferSave){save();memoryCount();}
   return mem;
  }
- function rateAnswer(messageId,rating){const h=state.history.find(x=>x.id===messageId);if(!h||!h.memId)return;const m=state.memories.find(x=>x.id===h.memId);if(!m)return;h.rating=rating;m.confidence=clamp((Number(m.confidence)||.5)+(rating===1?.07:-.12),.1,.99);learnAssociation();invalidateIndex();save();renderChat();toast(rating===1?'Avaliação positiva registrada.':'Avaliação negativa registrada. Você pode corrigir a memória.');}
+ function rateAnswer(messageId,rating){const h=state.history.find(x=>x.id===messageId);if(!h||!h.memId)return;const m=state.memories.find(x=>x.id===h.memId);if(!m)return;if(h.rating===rating)return;const previous=h.rating===1?.07:h.rating===-1?-.12:0;h.rating=rating;m.confidence=clamp((Number(m.confidence)||.5)+(rating===1?.07:-.12)-previous,.1,.99);learnAssociation();invalidateIndex();save();renderChat();toast(rating===1?'Avaliação positiva registrada.':'Avaliação negativa registrada. Você pode corrigir a memória.');}
  function openTeach(mem=null){editingId=mem?.id||null;$('teachTitle').textContent=mem?'Editar memória':'Ensinar o Synapse';$('teachSubject').value=mem?.subject||'';$('teachFact').value=mem?.fact||'';$('teachTags').value=mem?.tags?.join(', ')||'';$('teachAliases').value=mem?.aliases?.join('\n')||'';$('persistMemory').checked=mem?!!mem.approved:true;openOverlay('teachOverlay');$('teachSubject').focus();}
  function openMemories(){renderMemories();openOverlay('memOverlay');}
  function renderMemories(){const list=$('memoryList');list.replaceChildren();const filter=normal($('memorySearch').value);const visible=state.memories.filter(m=>!filter||normal([m.subject,m.fact,...(m.tags||[])].join(' ')).includes(filter));if(!visible.length){const msg=document.createElement('p');msg.className='empty';msg.textContent='Nenhuma memória cadastrada. Clique em “Nova memória” para começar.';list.appendChild(msg);return;}const note=document.createElement('p');note.className='context-help';note.textContent='Exibindo até '+Math.min(MEMORY_PAGE,visible.length)+' de '+visible.length+' memórias. Use a busca para filtrar.';list.appendChild(note);
@@ -163,7 +164,7 @@
  $('userInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();$('chatForm').requestSubmit();}});
  $('userInput').addEventListener('input',e=>{const el=e.target;el.style.height='auto';el.style.height=Math.min(el.scrollHeight,170)+'px';});
  $('modeBtn').onclick=()=>{learning=!learning;$('modeBtn').setAttribute('aria-pressed',String(learning));$('modeBtn').textContent='Modo aprendizagem: '+(learning?'ativado':'desativado');};
- $('newBtn').onclick=()=>{if(state.history.length&&!confirm('Limpar o histórico e as memórias temporárias? As memórias persistentes serão mantidas.'))return;state.history=[];state.memories=state.memories.filter(m=>m.approved);invalidateIndex();save();renderChat();closeMobile();$('userInput').focus();};
+ $('newBtn').onclick=()=>{if((state.history.length||state.memories.some(m=>!m.approved))&&!confirm('Limpar o histórico e as memórias temporárias? As memórias persistentes serão mantidas.'))return;state.history=[];state.memories=state.memories.filter(m=>m.approved);invalidateIndex();save();renderChat();closeMobile();$('userInput').focus();};
  $('teachBtn').onclick=()=>openTeach();$('quickTeach').onclick=()=>openTeach();$('memoriesBtn').onclick=()=>openMemories();$('memorySearch').addEventListener('input',renderMemories);$('newKnowledge').onclick=()=>openTeach();$('exportBtn').onclick=exportData;$('exportHere').onclick=exportData;$('importBtn').onclick=()=>{$('fileInput').value='';$('fileInput').click();closeMobile();};$('importHere').onclick=()=>{$('fileInput').value='';$('fileInput').click();};
  $('fileInput').onchange=async e=>{
   const files=Array.from(e.target.files||[]);if(!files.length)return;
