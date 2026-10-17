@@ -30,3 +30,13 @@ Data: 16/10/2026. Escopo: base original de 127 memórias + biblioteca de 1.000 m
 - As sinapses são associações lexicais/temáticas; conexões podem ter utilidade pedagógica diferente em cada assunto.
 - O navegador desta bancada bloqueou navegação direta para `file://` e servidores `localhost`; os testes de tela foram executados com o HTML carregado no Chromium por `set_content`, incluindo simulação de persistência. Não constitui validação do deploy remoto do GitHub Pages.
 - O reconhecimento de voz depende de permissões e implementação de cada navegador; não foi validado com hardware/microfone real.
+
+## Segunda varredura e correções adicionais (16/10/2026)
+
+- **Alta prioridade — falso positivo em PLN:** consultas sobre capital da França retornavam a memória da capital do Brasil; comparações Python/Java e perguntas C++/Python tinham candidatos indevidos. O filtro agora exige cobertura dos termos essenciais e impede trocas de entidades próprias explicitadas no enunciado. Casos de teste positivos e negativos acrescentados.
+- **Média — ajuda acionada indevidamente:** o padrão de `Como funciona...` interceptava perguntas sobre funcionalidades técnicas. Restringido a consultas específicas sobre o Synapse.
+- **Média — duplicação de conhecimento:** criação ou renomeação com assunto idêntico podia produzir memórias conflitantes. A operação agora bloqueia duplicatas e informa como editar o registro existente.
+- **Baixa — pontuação acumulada indevidamente:** votar repetidamente na mesma resposta inflava ou reduzia a confiança; votos idênticos passam a ser idempotentes, e a troca de voto desconta o ajuste anterior.
+- **Baixa — perda potencial de memória temporária:** a opção Nova conversa agora pede confirmação mesmo com histórico vazio quando existirem memórias não persistentes.
+
+**Validação realizada nesta segunda rodada:** Node `--check`, **28/28** cenários de consulta, **27/27** testes de interface no Chromium, teste de migração e auditoria estrutural de **1.127** memórias e **7.010** sinapses. Sem avaliação individual de veracidade dos fatos. A execução do deploy remoto e o microfone físico não foram testados nesta rodada.
